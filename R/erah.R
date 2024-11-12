@@ -249,7 +249,7 @@ setGeneric('deconvolveComp',function(Experiment, decParameters, samples.to.proce
 })
 
 #' @rdname deconvolveComp
-#' @importFrom furrr future_map furrr_options
+#' @importFrom BiocParallel bplapply bpparam
 
 setMethod('deconvolveComp',signature = 'MetaboSet',
           function(Experiment, decParameters, samples.to.process=NULL, down.sample=FALSE, virtualScansPerSecond=NULL){
@@ -261,7 +261,7 @@ setMethod('deconvolveComp',signature = 'MetaboSet',
             soft.par <- list(min.peak.width = decParameters@min.peak.width, min.peak.height = decParameters@min.peak.height, noise.threshold = decParameters@noise.threshold, avoid.processing.mz = decParameters@avoid.processing.mz,  compression.coef = decParameters@compression.coef, analysis.time = decParameters@analysis.time)
             Experiment@Data@Parameters <- soft.par
             
-            Experiment@Data@FactorList <- future_map(samples.to.process,~{
+            Experiment@Data@FactorList <- bplapply(samples.to.process,function(.x){
               
               k <- which(samples.to.process == .x)
               
@@ -275,8 +275,7 @@ setMethod('deconvolveComp',signature = 'MetaboSet',
                             plotting, 
                             down.sample, 
                             virtualScansPerSecond)
-            },
-            .options = furrr_options(seed = TRUE))
+            }, BPPARAM = bpparam())
             
             names(Experiment@Data@FactorList) <- metaData(Experiment)$sampleID
             Experiment <- scansPerSecond(Experiment)
